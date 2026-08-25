@@ -1,0 +1,157 @@
+{
+ "per_video": {
+  "ref00": {
+   "iou_lossless": 0.19755244755244755,
+   "iou_aac_noedit": 0.14685314685314685,
+   "n_apk_lossless": 407,
+   "n_apk_aac": 214,
+   "support": [
+    1.0,
+    59.0
+   ]
+  },
+  "ref01": {
+   "iou_lossless": 0.18727272727272729,
+   "iou_aac_noedit": 0.16042780748663102,
+   "n_apk_lossless": 374,
+   "n_apk_aac": 372,
+   "support": [
+    1.0,
+    59.0
+   ]
+  },
+  "ref02": {
+   "iou_lossless": 0.06532663316582915,
+   "iou_aac_noedit": 0.07936507936507936,
+   "n_apk_lossless": 309,
+   "n_apk_aac": 157,
+   "support": [
+    1.0,
+    59.0
+   ]
+  },
+  "ref03": {
+   "iou_lossless": 0.16159695817490494,
+   "iou_aac_noedit": 0.11491935483870967,
+   "n_apk_lossless": 211,
+   "n_apk_aac": 153,
+   "support": [
+    1.0,
+    59.0
+   ]
+  },
+  "ref04": {
+   "iou_lossless": 0.14744801512287334,
+   "iou_aac_noedit": 0.14366729678638943,
+   "n_apk_lossless": 177,
+   "n_apk_aac": 175,
+   "support": [
+    1.0,
+    59.0
+   ]
+  },
+  "ref05": {
+   "iou_lossless": 0.22095238095238096,
+   "iou_aac_noedit": 0.0,
+   "n_apk_lossless": 280,
+   "n_apk_aac": 1,
+   "support": [
+    1.0,
+    59.0
+   ]
+  },
+  "ref06": {
+   "iou_lossless": 0.22136222910216719,
+   "iou_aac_noedit": 0.06986027944111776,
+   "n_apk_lossless": 306,
+   "n_apk_aac": 53,
+   "support": [
+    1.0,
+    59.0
+   ]
+  },
+  "ref07": {
+   "iou_lossless": 0.22117202268431002,
+   "iou_aac_noedit": 0.20335820895522388,
+   "n_apk_lossless": 278,
+   "n_apk_aac": 277,
+   "support": [
+    1.0,
+    59.0
+   ]
+  },
+  "ref08": {
+   "iou_lossless": 0.23039215686274508,
+   "iou_aac_noedit": 0.1859582542694497,
+   "n_apk_lossless": 314,
+   "n_apk_aac": 186,
+   "support": [
+    1.0,
+    59.0003125
+   ]
+  },
+  "ref09": {
+   "iou_lossless": 0.19553072625698323,
+   "iou_aac_noedit": 0.09024390243902439,
+   "n_apk_lossless": 291,
+   "n_apk_aac": 96,
+   "support": [
+    1.0,
+    58.986
+   ]
+  },
+  "ref10": {
+   "iou_lossless": 0.2368,
+   "iou_aac_noedit": 0.08208955223880597,
+   "n_apk_lossless": 275,
+   "n_apk_aac": 82,
+   "support": [
+    1.0,
+    59.0
+   ]
+  },
+  "ref11": {
+   "iou_lossless": 0.1729490022172949,
+   "iou_aac_noedit": 0.15587529976019185,
+   "n_apk_lossless": 191,
+   "n_apk_aac": 144,
+   "support": [
+    1.0,
+    47.5541875
+   ]
+  },
+  "ref12": {
+   "iou_lossless": 0.17142857142857143,
+   "iou_aac_noedit": 0.003976143141153081,
+   "n_apk_lossless": 153,
+   "n_apk_aac": 2,
+   "support": [
+    1.0,
+    59.0
+   ]
+  },
+  "ref13": {
+   "iou_lossless": 0.2032967032967033,
+   "iou_aac_noedit": 0.029082774049217,
+   "n_apk_lossless": 223,
+   "n_apk_aac": 26,
+   "support": [
+    1.0,
+    59.0
+   ]
+  }
+ },
+ "summary": {
+  "lossless_mean": 0.18807718386356703,
+  "lossless_std": 0.04288830621917877,
+  "aac_mean": 0.10469122140172428,
+  "aac_std": 0.06259954569366054,
+  "n": 14,
+  "collapse_refs": [
+   "ref05",
+   "ref06",
+   "ref12",
+   "ref13"
+  ]
+ }
+}
