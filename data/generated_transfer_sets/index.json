@@ -1,0 +1,136 @@
+{
+ "description": "Injected-offset calibration of the Synchformer expectation readout on seven generated sets (24 videos each) from sampler variants of one streaming joint audio-video system; paper Sec. 5 \"Transfer to generated content\". Slope = per-video least-squares slope of signed reading vs injected offset (lossless path), floor = mean |reading| at zero offset. set_G_60s is the same measurement as generated_transfer_e2r60s.json.",
+ "pearson_r_floor_vs_slope": -0.959,
+ "real_reference_slope_median": 0.64,
+ "real_reference_floor": "0.20 +/- 0.13 s",
+ "sets": [
+  {
+   "set_id": "set_A_30s",
+   "duration_s": 30,
+   "n_videos": 24,
+   "injected_offsets_s": [
+    -0.5,
+    -0.2,
+    0.0,
+    0.2,
+    0.5
+   ],
+   "floor_abs0_mean": 0.2287,
+   "slope_mean": 0.5831,
+   "slope_ci95": [
+    0.4576,
+    0.6947
+   ]
+  },
+  {
+   "set_id": "set_B_30s",
+   "duration_s": 30,
+   "n_videos": 24,
+   "injected_offsets_s": [
+    -0.5,
+    -0.2,
+    0.0,
+    0.2,
+    0.5
+   ],
+   "floor_abs0_mean": 0.2349,
+   "slope_mean": 0.4168,
+   "slope_ci95": [
+    0.3166,
+    0.5227
+   ]
+  },
+  {
+   "set_id": "set_C_30s",
+   "duration_s": 30,
+   "n_videos": 24,
+   "injected_offsets_s": [
+    -0.5,
+    -0.2,
+    0.0,
+    0.2,
+    0.5
+   ],
+   "floor_abs0_mean": 0.2425,
+   "slope_mean": 0.4742,
+   "slope_ci95": [
+    0.343,
+    0.6067
+   ]
+  },
+  {
+   "set_id": "set_D_30s",
+   "duration_s": 30,
+   "n_videos": 24,
+   "injected_offsets_s": [
+    -0.5,
+    -0.2,
+    0.0,
+    0.2,
+    0.5
+   ],
+   "floor_abs0_mean": 0.4333,
+   "slope_mean": 0.0864,
+   "slope_ci95": [
+    0.0433,
+    0.1299
+   ]
+  },
+  {
+   "set_id": "set_E_60s",
+   "duration_s": 60,
+   "n_videos": 24,
+   "injected_offsets_s": [
+    -0.5,
+    -0.2,
+    0.0,
+    0.2,
+    0.5
+   ],
+   "floor_abs0_mean": 0.2374,
+   "slope_mean": 0.3677,
+   "slope_ci95": [
+    0.2688,
+    0.4697
+   ]
+  },
+  {
+   "set_id": "set_F_60s",
+   "duration_s": 60,
+   "n_videos": 24,
+   "injected_offsets_s": [
+    -0.5,
+    -0.2,
+    0.0,
+    0.2,
+    0.5
+   ],
+   "floor_abs0_mean": 0.2507,
+   "slope_mean": 0.4749,
+   "slope_ci95": [
+    0.3483,
+    0.6029
+   ]
+  },
+  {
+   "set_id": "set_G_60s",
+   "duration_s": 60,
+   "n_videos": 24,
+   "injected_offsets_s": [
+    -1.0,
+    -0.5,
+    -0.2,
+    0.0,
+    0.2,
+    0.5,
+    1.0
+   ],
+   "floor_abs0_mean": 0.4734,
+   "slope_mean": -0.0396,
+   "slope_ci95": [
+    -0.0831,
+    0.0037
+   ]
+  }
+ ]
+}

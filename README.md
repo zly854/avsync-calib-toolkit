@@ -32,6 +32,8 @@ scripts/
 data/
   *.json                    # every measured number behind every figure/table
   peaks_cache/              # cached audio/visual peak timestamps (14 refs)
+  generated_transfer_sets/  # injected-offset gain on 7 generated sets (Sec. 5;
+                            # index.json summarises floor/slope/CI per set)
 refset/
   (built locally)           # videos are NOT redistributed; build_refset.py
                             # reconstructs from data/refset_meta.json
@@ -57,7 +59,7 @@ original TempoTokens implementation (`av_align.py`, vendored path in
 | Cross-pairing control (§3.3) | `avalign_crosspair.py` |
 | n-scaling / CI contraction (Fig. 2b) | `nscaling_avalign.py` |
 | Table 2 (block-bootstrap) | `make_table2.py` |
-| Generated-distribution transfer (§5) | `calibrate_desync_batch.py` |
+| Generated-distribution transfer (§5, `data/generated_transfer_sets/`) | `calibrate_desync_batch.py` per set, offsets ±0.2/±0.5 s |
 
 Every JSON in `data/` is the exact file the paper's figures were rendered from.
 
