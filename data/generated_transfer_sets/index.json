@@ -1,5 +1,5 @@
 {
- "description": "Injected-offset calibration of the Synchformer expectation readout on seven generated sets (24 videos each) from sampler variants of one streaming joint audio-video system; paper Sec. 5 \"Transfer to generated content\". Slope = per-video least-squares slope of signed reading vs injected offset (lossless path), floor = mean |reading| at zero offset. set_G_60s is the same measurement as generated_transfer_e2r60s.json.",
+ "description": "Injected-offset calibration of the Synchformer expectation readout on seven generated sets (24 videos each) from sampler variants of one streaming joint audio-video system; paper Sec. 5 \"Transfer to generated content\". Slope = per-video least-squares slope of signed reading vs injected offset (lossless path), floor = mean |reading| at zero offset. set_G_60s is the same measurement as generated_transfer_e2r60s.json. set_H_60s (added 2026-09-12) is a collapsed-content set with a low floor and near-zero gain; it is reported in the paper as a counterexample to floor-predicted gain and is excluded from the seven-set correlation.",
  "pearson_r_floor_vs_slope": -0.959,
  "real_reference_slope_median": 0.64,
  "real_reference_floor": "0.20 +/- 0.13 s",
@@ -131,6 +131,25 @@
     -0.0831,
     0.0037
    ]
+  },
+  {
+   "set_id": "set_H_60s",
+   "duration_s": 60,
+   "n_videos": 8,
+   "injected_offsets_s": [
+    -0.5,
+    -0.2,
+    0.0,
+    0.2,
+    0.5
+   ],
+   "floor_abs0_mean": 0.21264417839535912,
+   "slope_mean": 0.04567790278356885,
+   "slope_ci95": [
+    0.04062707786469946,
+    0.0511725520002002
+   ],
+   "note": "collapsed content; excluded from pearson_r_floor_vs_slope (computed over sets A-G)"
   }
  ]
 }
