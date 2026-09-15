@@ -1,4 +1,4 @@
-"""avalign_offset_calib.json -> Paper B 正文数字（§3.1/§3.3/§4/Fig.2a）。"""
+"""avalign_offset_calib.json -> numbers quoted in the paper (Secs. 3.1, 3.3, 4; Fig. 4a; Table 1)."""
 import json, sys
 import numpy as np
 
