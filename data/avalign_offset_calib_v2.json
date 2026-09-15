@@ -1,6 +1,6 @@
 {
  "method": "peak_timestamp_shift",
- "refdir": "/data3/llw26/zly/results/RealRef",
+ "refdir": "refset",
  "win": 4.0,
  "offsets": [
   -1.0,

@@ -1,6 +1,6 @@
 """B.2a 生成视频注入偏移标定（Paper B §5 "迁移已验证" / 限界升级，R1 称 decisive）。
 
-在生成分布（E2r S0 60s）上重复 RealRef 的注入偏移标定：wav 通路峰值平移
+在一个生成视频集合上重复参照集（RealRef）的注入偏移标定：wav 通路峰值平移
 {±0.2, ±0.5, ±1.0}s → Synchformer 读出 → 逐视频 OLS 斜率。0 偏移基线复用
 既有 sample_XXXX_desync.json（同一模型同一 stride 产出，勿重算）。
 
@@ -13,8 +13,8 @@
 
 用法（服务器，每 GPU 一个进程分摊视频）：
   python eval/drift/calibrate_desync_batch.py \
-    --dir results/E2r_s0_60s --limit 24 --shard 0 --nshard 2 \
-    --device cuda:0 --workdir results/E2r_s0_60s/inject_calib/work0
+    --dir results/<generated_set> --limit 24 --shard 0 --nshard 2 \
+    --device cuda:0 --workdir results/<generated_set>/inject_calib/work0
 聚合（CPU）：--aggregate-only
 """
 import argparse

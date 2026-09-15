@@ -13,8 +13,8 @@ d ∈ {4,8,15,30,60}s 以 stride=d/2 平铺子窗计算 IoU，报告逐时长的
 逐片段独立提峰，慢一个量级，仅在 RealRef 上跑）。
 
 用法：
-  python eval/drift/nscaling_avalign.py --videos "results/E2_s0_60s/sample_*.mp4" \
-      --durations 4 8 15 30 60 --out results/E2_s0_60s/aggregate/nscaling.json
+  python scripts/nscaling_avalign.py --videos "results/<generated_set>/sample_*.mp4" \
+      --durations 4 8 15 30 60 --out results/<generated_set>/aggregate/nscaling.json
 """
 import argparse
 import glob
