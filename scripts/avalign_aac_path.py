@@ -7,7 +7,7 @@
 （ref05 直测 292→3 onsets）。本脚本给出 n=14 的 IoU 母体数字。
 
 用法：
-  python eval/drift/avalign_aac_path.py \
+  python scripts/avalign_aac_path.py \
     --refdir results/RealRef \
     --out results/RealRef/avalign_aac_path.json --support-pad 1.0
 """

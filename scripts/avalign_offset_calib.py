@@ -14,7 +14,7 @@ v1 的波形平移结果保留为 --mode waveform（伪影演示用，勿作响�
 之后任意偏移扫描为纯算术。
 
 用法：
-  python eval/drift/avalign_offset_calib.py \
+  python scripts/avalign_offset_calib.py \
     --refdir results/RealRef \
     --out results/RealRef/avalign_offset_calib_v2.json --workers 6
 """

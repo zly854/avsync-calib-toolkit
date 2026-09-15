@@ -12,7 +12,7 @@
 的 moving-block bootstrap 聚合；任何 resolvable 判断勿用 iid 假设直算。
 
 用法（服务器，每 GPU 一个进程分摊视频）：
-  python eval/drift/calibrate_desync_batch.py \
+  python scripts/calibrate_desync_batch.py \
     --dir results/<generated_set> --limit 24 --shard 0 --nshard 2 \
     --device cuda:0 --workdir results/<generated_set>/inject_calib/work0
 聚合（CPU）：--aggregate-only

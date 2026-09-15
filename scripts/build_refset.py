@@ -12,7 +12,7 @@ n≈14 的多样化真实视频母体（语音/音乐/撞击/环境四类，与�
 - 输出 refXX.mp4（25fps h264，仅供帧读取）+ refXX.wav（16k mono PCM 测量通路），
   命名 ref00..refNN 按类别排序。
 
-用法：python eval/drift/build_refset.py --out results/RealRef
+用法：python scripts/build_refset.py --out results/RealRef
 """
 import argparse
 import json

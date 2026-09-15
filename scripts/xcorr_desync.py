@@ -15,7 +15,7 @@
 （无离散事件）天然失锁 → locked 率本身就是可测性的报告项，不硬给数。
 
 用法：
-  python eval/drift/xcorr_desync.py --video x.mp4 [--audio x.wav] \
+  python scripts/xcorr_desync.py --video x.mp4 [--audio x.wav] \
       [--seg 8.0 --stride 2.0 --max-lag 5.0] --out x_xcorr.json
 """
 import argparse

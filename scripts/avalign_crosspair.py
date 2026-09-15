@@ -16,7 +16,7 @@ R2 残留质疑：AV-Align 读数不响应对齐，但现稿只有注入偏移�
 单独预测。
 
 用法：
-  python eval/drift/avalign_crosspair.py \
+  python scripts/avalign_crosspair.py \
     --refdir results/RealRef \
     --out results/RealRef/avalign_crosspair.json
 """

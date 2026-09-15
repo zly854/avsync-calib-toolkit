@@ -8,7 +8,7 @@
   - **灵敏度**：读出偏移 vs 注入偏移的回归斜率（理想 = 1.0）与符号约定
   - **可分辨阈**：多大的偏移才能与 0 偏移显著区分（bootstrap）
 
-用法：python eval/drift/calibrate_desync.py --video ref60.mp4 --audio ref60.wav
+用法：python scripts/calibrate_desync.py --video ref60.mp4 --audio ref60.wav
 """
 import argparse, json
 from pathlib import Path

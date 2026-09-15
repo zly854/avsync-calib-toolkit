@@ -9,7 +9,7 @@
      `--check-scaling` 会给出各分箱长度下的自助法置信带宽度，用于确认所选 bin 够稳。
 
 用法：
-  python eval/drift/av_align_curve.py --video x.mp4 [--audio x.wav] --bin 2.0 --out x.json
+  python scripts/av_align_curve.py --video x.mp4 [--audio x.wav] --bin 2.0 --out x.json
 """
 import argparse, json, sys
 from pathlib import Path

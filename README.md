@@ -26,13 +26,13 @@ scripts/
   avalign_aac_path.py       # AAC container-path artifact measurement
   nscaling_avalign.py       # n-scaling / CI-width analysis
   build_refset.py           # reference-set reconstruction from manifest
-  make_table2.py            # Table 2 with moving-block bootstrap (canonical
+  make_table2.py            # Table 4 with moving-block bootstrap (canonical
                             # aggregation; per-video JSON `resolvable` fields
                             # are legacy i.i.d. — do not cite them directly)
 data/
   *.json                    # every measured number behind every figure/table
   peaks_cache/              # cached audio/visual peak timestamps (14 refs)
-  generated_transfer_sets/  # injected-offset gain on 7 generated sets (Sec. 5;
+  generated_transfer_sets/  # injected-offset gain on generated sets A-G + H (Sec. 5, Table 3;
                             # index.json summarises floor/slope/CI per set)
 refset/
   (built locally)           # videos are NOT redistributed; build_refset.py
@@ -52,20 +52,20 @@ original TempoTokens implementation (`av_align.py`, vendored path in
 
 | Paper item | Command |
 |---|---|
-| DeSync floor / slope / saturation (Fig. 1, Table 1) | `calibrate_desync.py --video refNN.mp4` per ref, aggregate |
+| DeSync floor / slope / saturation (Fig. 2, Table 2) | `calibrate_desync.py --video refNN.mp4` per ref, aggregate |
 | Sub-grid slope, out-of-range foldback | same, offsets list incl. ±0.02–±2.5 |
-| AAC container path (+64 ms, onset collapse) | `avalign_aac_path.py` |
-| AV-Align flat response + chance level (Fig. 2a) | `avalign_offset_calib.py` |
-| Cross-pairing control (§3.3) | `avalign_crosspair.py` |
-| n-scaling / CI contraction (Fig. 2b) | `nscaling_avalign.py` |
-| Table 2 (block-bootstrap) | `make_table2.py` |
-| Generated-distribution transfer (§5, `data/generated_transfer_sets/`) | `calibrate_desync_batch.py` per set, offsets ±0.2/±0.5 s |
+| AAC container path (+64 ms, onset collapse; Fig. 3, Table 1) | `avalign_aac_path.py` |
+| AV-Align flat response + chance level (Fig. 4a, Table 1) | `avalign_offset_calib.py` |
+| Cross-pairing control (Sec. 3.3, Table 1) | `avalign_crosspair.py` |
+| n-scaling / CI contraction (Fig. 4b) | `nscaling_avalign.py` |
+| Table 4 (block-bootstrap separability) | `make_table2.py` |
+| Transfer to generated content (Sec. 5, Table 3, `data/generated_transfer_sets/`) | `calibrate_desync_batch.py` per set, offsets ±0.2/±0.5 s |
 
 Every JSON in `data/` is the exact file the paper's figures were rendered from.
 
 ## Reference set
 
-14 real, verifiably synchronized clips across five audio classes. We publish
+14 real, verifiably synchronized one-minute clips: four speech, four music, four impact, two ambient. We publish
 the manifest (`data/refset_meta.json`: source URL, time span, license,
 attribution) rather than the media. `build_refset.py --manifest
 data/refset_meta.json` downloads and cuts the exact clips.

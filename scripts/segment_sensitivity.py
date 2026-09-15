@@ -24,8 +24,8 @@
 都等于注入量，因此逐段回归的斜率就是该段的局部灵敏度。
 
 用法：
-  python eval/drift/segment_sensitivity.py --dir results/E2_s0_60s --stride 24 \
-      --workdir tmp/d0b_work --out results/E2_s0_60s/aggregate/d0b_segment_sensitivity.json
+  python scripts/segment_sensitivity.py --dir results/<generated_set> --stride 24 \
+      --workdir tmp/segment_work --out results/<generated_set>/aggregate/segment_sensitivity.json
 """
 import argparse
 import glob
