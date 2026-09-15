@@ -1,8 +1,8 @@
 # AV-Sync Metric Calibration Toolkit
 
 Measurement scripts, reference-set manifest, and all measured data for the paper
-*"[title TBD]: Calibrating Audio-Visual Synchronization Metrics for Long-Form
-Generation"* (ICASSP 2027 submission).
+*"Measuring the Ruler: Calibrating Audio-Visual Synchronization Metrics for
+Long-Form Generated Video"* (ICASSP 2027 submission).
 
 Audio-visual synchronization metrics (Synchformer-based offset estimators,
 event-agreement scores) are routinely applied outside their validated regime.
