@@ -33,8 +33,10 @@ def main():
     c = canvas.Canvas(str(args.out/'fig_stack.pdf'), pagesize=(244,108), initialFontName='Diagram', initialFontSize=9.3)
     c.setFont('DiagramBold',9.3)
     c.drawString(5,97,'Observed failure'); c.drawString(132,97,'Calibration check')
-    rows=[('AAC path: +64 ms','Test extraction lag'),('Argmax / foldback','Validate readout range'),('AV-Align near chance','Test gain and chance'),('Length / content floor','Measure spread and floor')]
+    rows=[('AAC path: +64 ms','Test extraction lag'),('Argmax / foldback','Validate readout range'),('AV-Align near chance','Test gain and chance'),('Length / content floor','Measure spread / floor')]
     for n,(a,b) in enumerate(rows):
+        assert pdfmetrics.stringWidth(a, "Diagram", 9.3) <= 122
+        assert pdfmetrics.stringWidth(b, "Diagram", 9.3) <= 110
         y=75-22*n
         c.setStrokeColorRGB(.75,.8,.85); c.line(3,y-6,241,y-6)
         c.setFont('Diagram',9.3); c.drawString(5,y,a);c.drawString(132,y,b)
