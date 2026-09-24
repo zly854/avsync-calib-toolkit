@@ -1,14 +1,9 @@
-"""DeSync 指标灵敏度标定。
+"""Calibrate signed offset response on a screened reference clip.
 
-在已知同步的真实视频上人为注入 ±0.2/0.5/1.0s 音轨平移，检查 DeSync 曲线能否读出。
-这是审稿人问"你的指标可信吗"时的挡箭牌，也是解释生成视频 DeSync 曲线的噪声底。
-
-产出三个数：
-  - **噪声底**：0 偏移时 |DeSync| 的均值（读数不可能比它更准）
-  - **灵敏度**：读出偏移 vs 注入偏移的回归斜率（理想 = 1.0）与符号约定
-  - **可分辨阈**：多大的偏移才能与 0 偏移显著区分（bootstrap）
-
-用法：python scripts/calibrate_desync.py --video ref60.mp4 --audio ref60.wav
+Residual source misalignment is not independently known. The zero-injection
+absolute reading is a reference distribution, not an estimator accuracy bound.
+The stored resolvable field retains the legacy iid bootstrap for compatibility;
+use make_table2.py on full window curves for the paper's block-bootstrap test.
 """
 import argparse, json
 from pathlib import Path
@@ -21,12 +16,14 @@ from desync_core import build_model, load_streams, desync_curve, AFPS
 
 def shift_wav(wav: torch.Tensor, delta_sec: float) -> torch.Tensor:
     """把音频相对视频平移 delta 秒。delta>0 = 丢掉开头 → 音频事件提前（音频领先）。"""
-    n = int(round(abs(delta_sec) * AFPS))
+    if not np.isfinite(delta_sec):
+        raise ValueError("Offset must be finite")
+    n = min(len(wav), int(round(abs(delta_sec) * AFPS)))
     if n == 0:
         return wav.clone()
     if delta_sec > 0:
-        return torch.cat([wav[n:], torch.zeros(n, dtype=wav.dtype)])
-    return torch.cat([torch.zeros(n, dtype=wav.dtype), wav[:-n]])
+        return torch.cat([wav[n:], wav.new_zeros(n)])
+    return torch.cat([wav.new_zeros(n), wav[:-n]])
 
 
 def main():
@@ -39,6 +36,10 @@ def main():
     ap.add_argument("--out", default=None)
     ap.add_argument("--device", default="cuda:0")
     args = ap.parse_args()
+    if 0.0 not in args.offsets or len(args.offsets) < 3 or not all(np.isfinite(args.offsets)):
+        ap.error("Include zero and at least two other finite offsets")
+    if len({f"{x:+.2f}" for x in args.offsets}) != len(args.offsets):
+        ap.error("Offset keys must be distinct at centisecond precision")
 
     video = str(Path(args.video).resolve())
     audio = str(Path(args.audio).resolve()) if args.audio else None
@@ -90,7 +91,7 @@ def main():
         print(f"  {k}s: CI=[{v['ci_lo']:+.3f}, {v['ci_hi']:+.3f}]  "
               f"{'可分辨' if v['separable'] else '不可分辨'}")
 
-    res = dict(video=video, offsets=args.offsets, stride=args.stride,
+    res = dict(resolvable_method="legacy_iid_bootstrap_2000_seed0", video=video, offsets=args.offsets, stride=args.stride,
                sensitivity=dict(slope=float(slope), intercept=float(icpt), pearson_r=r),
                noise_floor_abs=noise_floor, resolvable=resolvable,
                per_offset={k: {kk: vv for kk, vv in v.items() if kk != "curve"}

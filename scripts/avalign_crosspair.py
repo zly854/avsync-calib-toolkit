@@ -54,6 +54,8 @@ def main():
              for p in sorted(cache.glob("*_peaks.json"))}
     names = sorted(peaks)
     print(f"{len(names)} refs loaded from {cache}")
+    if len(names) < 2 or args.chance_draws < 1:
+        ap.error("Need at least two peak caches and positive --chance-draws")
     rng = np.random.default_rng(args.seed)
 
     def score(apk, vpk, fps, t1):

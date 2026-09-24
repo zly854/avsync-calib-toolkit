@@ -1,124 +1,54 @@
-"""RealRef 参照集构建：从 Wikimedia Commons 下载真实 AV 视频，裁 60s，产出测量对。
+"""Reconstruct the fixed reference set from its licensed-source manifest.
 
-用途（真实同步参照集：噪声底对照 + 校准母体）：
-当前"真实视频噪声底 0.222s"建立在 n=1 上，两篇论文都站不住。本脚本构建
-n≈14 的多样化真实视频母体（语音/音乐/撞击/环境四类，与生成侧提示集分层同构）。
-
-选择纪律（写论文 Limitations 用）：
-- 全部 Commons 公开许可，逐条记录 license/attribution 进 refset_meta.json；
-- 排除无声电影配乐版（同步无定义）；1945 新闻片鼓独奏保留但打 vintage 标记
-  （胶片转制同步质量存疑，筛查阶段用 DeSync 读数决定去留）；
-- 每条裁**中间** 60s（避开片头字幕/片尾）；不足 65s 的取全长减首尾 2s；
-- 输出 refXX.mp4（25fps h264，仅供帧读取）+ refXX.wav（16k mono PCM 测量通路），
-  命名 ref00..refNN 按类别排序。
-
-用法：python scripts/build_refset.py --out results/RealRef
+No discovery/search is performed. Start times retain the two-decimal rounding
+used in the original ffmpeg commands. Source bytes may change upstream; the
+historical release did not record source checksums, so byte identity is not claimed.
 """
 import argparse
 import json
+import re
+import shlex
 import subprocess
-import time
-import urllib.parse
-import urllib.request
 from pathlib import Path
-
-UA = {"User-Agent": "research-calib/0.1 (academic AV-sync metric calibration)"}
-
-# (类别, 搜索词, 标题前缀——用于在搜索结果中锁定精确标题)
-CANDIDATES = [
-    ("speech",  "interview filetype:video",            "File:Bernard Mabille - Interview"),
-    ("speech",  "interview filetype:video",            "File:Interview on extreme weather"),
-    ("speech",  "speech lecture filetype:video",       "File:Climate Resilience through Knowledge"),
-    ("speech",  "speech lecture filetype:video",       "File:Berenice Cort"),
-    ("music",   "violin performance filetype:video",   "File:MHVC-KyokoYonemoto"),
-    ("music",   "violin performance filetype:video",   "File:La feria chilpancing"),
-    ("music",   "piano recital filetype:video",        "File:Eri & Mari Yoshizawa"),
-    ("music",   "drumming filetype:video",             "File:Drumming Basics"),
-    ("impact",  "drumming filetype:video",             "File:Luk"),
-    ("impact",  "blacksmith forging filetype:video",   "File:RhofLhSchmied"),
-    ("impact",  "drumming filetype:video",             "File:Andy Russell Drum Solo"),
-    ("impact",  "basketball dribbling filetype:video", "File:Basketball-Basic Types"),
-    ("ambient", "rain sound filetype:video",           "File:WV0065"),
-    ("ambient", "ocean waves beach filetype:video",    "File:Ocean Shores - Waves"),
-]
-VINTAGE = {"File:Andy Russell Drum Solo"}
-
-
-def api(**kw):
-    kw.update(action="query", format="json")
-    url = "https://commons.wikimedia.org/w/api.php?" + urllib.parse.urlencode(kw)
-    req = urllib.request.Request(url, headers=UA)
-    return json.load(urllib.request.urlopen(req, timeout=30))
-
-
-def resolve(search, prefix):
-    r = api(list="search", srsearch=search, srnamespace=6, srlimit=20)
-    titles = [h["title"] for h in r["query"]["search"] if h["title"].startswith(prefix)]
-    if not titles:
-        return None
-    time.sleep(3)
-    r2 = api(titles=titles[0], prop="videoinfo",
-             viprop="url|size|mime|duration|extmetadata")
-    page = next(iter(r2["query"]["pages"].values()))
-    vi = page["videoinfo"][0]
-    md = vi.get("extmetadata", {})
-    return dict(title=page["title"], url=vi["url"], duration=vi.get("duration"),
-                size=vi.get("size"), mime=vi.get("mime"),
-                license=(md.get("LicenseShortName") or {}).get("value"),
-                artist=(md.get("Artist") or {}).get("value", "")[:200])
+from urllib.parse import urlparse
 
 
 def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--out", required=True)
-    ap.add_argument("--clip", type=float, default=60.0)
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument('--manifest', type=Path, default=Path(__file__).resolve().parents[1]/'data/refset_meta.json')
+    ap.add_argument('--out', type=Path, required=True)
+    ap.add_argument('--dry-run', action='store_true', help='Print exact commands without network or writes')
     args = ap.parse_args()
-    out = Path(args.out)
-    out.mkdir(parents=True, exist_ok=True)
-
-    meta = []
-    idx = 0
-    for cat, search, prefix in CANDIDATES:
-        name = f"ref{idx:02d}"
-        mp4 = out / f"{name}.mp4"
-        if mp4.exists():
-            print(f"[{name}] exists, skip");  idx += 1;  continue
-        try:
-            info = resolve(search, prefix)
-            time.sleep(3)
-        except Exception as e:
-            print(f"[{name}] resolve FAIL {prefix}: {e}");  idx += 1;  continue
-        if info is None:
-            print(f"[{name}] no match for {prefix}");  idx += 1;  continue
-
-        raw = out / ("raw_" + name + Path(urllib.parse.urlparse(info["url"]).path).suffix)
-        print(f"[{name}] {cat} {info['title'][:60]} dur={info['duration']}s "
-              f"{(info['size'] or 0)//2**20}MB lic={info['license']}")
-        if not raw.exists():
-            subprocess.run(["curl", "-sL", "--retry", "3", "-o", str(raw), info["url"]],
-                           check=True, timeout=1800)
-
-        dur = float(info["duration"] or 0)
-        clip = min(args.clip, max(dur - 4, 10))
-        start = max((dur - clip) / 2, 2)
-        # 视频 25fps h264（只供帧读取）；音频无损 wav sidecar（测量通路）
-        subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
-                        "-ss", f"{start:.2f}", "-t", f"{clip:.2f}", "-i", str(raw),
-                        "-an", "-vf", "fps=25", "-c:v", "libx264", "-crf", "20", str(mp4)],
-                       check=True, timeout=1800)
-        subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
-                        "-ss", f"{start:.2f}", "-t", f"{clip:.2f}", "-i", str(raw),
-                        "-vn", "-acodec", "pcm_s16le", "-ar", "16000", "-ac", "1",
-                        str(out / f"{name}.wav")], check=True, timeout=1800)
-        raw.unlink()
-        meta.append(dict(name=name, category=cat, clip_seconds=clip, clip_start=start,
-                         vintage=any(info["title"].startswith(v) for v in VINTAGE), **info))
-        with open(out / "refset_meta.json", "w") as f:
-            json.dump(meta, f, ensure_ascii=False, indent=1)
-        idx += 1
-
-    print(f"done: {len(meta)} clips -> {out}")
+    records = json.loads(args.manifest.read_text())
+    names = set()
+    for row in records:
+        name = row['name']; url = urlparse(row['url'])
+        if not re.fullmatch(r'ref\d{2}', name) or name in names:
+            ap.error(f'Invalid or duplicate name: {name}')
+        names.add(name)
+        if url.scheme != 'https' or url.hostname != 'upload.wikimedia.org':
+            ap.error(f'Unexpected source URL for {name}')
+        if not row.get('license') or not row.get('artist') or row['clip_start'] < 0 or row['clip_seconds'] <= 0:
+            ap.error(f'Missing provenance or invalid time span: {name}')
+    if not args.dry_run: args.out.mkdir(parents=True, exist_ok=True)
+    for row in records:
+        name=row['name']; video=args.out/f'{name}.mp4'; audio=args.out/f'{name}.wav'
+        if video.is_file() and video.stat().st_size and audio.is_file() and audio.stat().st_size:
+            print(f'{name}: both streams exist; skipping'); continue
+        raw=args.out/f"raw_{name}{Path(urlparse(row['url']).path).suffix}"
+        temp_video=args.out/f'{name}.partial.mp4';temp_audio=args.out/f'{name}.partial.wav'
+        common=['ffmpeg','-hide_banner','-loglevel','error','-y','-ss',f"{row['clip_start']:.2f}",'-t',f"{row['clip_seconds']:.2f}",'-i',str(raw)]
+        commands=[['curl','--fail','--location','--retry','3','--output',str(raw),row['url']],
+            common+['-an','-vf','fps=25','-c:v','libx264','-crf','20',str(temp_video)],
+            common+['-vn','-acodec','pcm_s16le','-ar','16000','-ac','1',str(temp_audio)]]
+        for command in commands:
+            print(shlex.join(command))
+            if not args.dry_run: subprocess.run(command,check=True,timeout=1800)
+        if not args.dry_run:
+            temp_video.replace(video);temp_audio.replace(audio);raw.unlink()
+    if not args.dry_run:
+        (args.out/'refset_meta.json').write_text(json.dumps(records,ensure_ascii=False,indent=2)+'\n')
+    print(f'{len(records)} manifest records processed')
 
 
-if __name__ == "__main__":
-    main()
+if __name__=='__main__':main()

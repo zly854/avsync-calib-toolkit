@@ -7,7 +7,7 @@ v1（波形平移注入）发现并实锤了一个注入方法学伪影：负偏
 apk' = apk − delta 与音频整体平移严格等价，且无任何边界伪影。
 所有偏移在共同支撑 [pad, dur−pad]（pad=max|delta|）上评估，密度可比。
 
-v1 的波形平移结果保留为 --mode waveform（伪影演示用，勿作响应曲线）。
+历史波形平移结果仅用于伪影诊断；本脚本只实现峰时间戳平移。
 
 符号约定不变：delta>0 = 音频提前（事件时刻变早）。
 峰提取（光流+onset）每条视频只算一次并缓存到 <refdir>/peaks_cache/，
@@ -26,8 +26,6 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from av_align_curve import read_frames, audio_peaks, video_peaks, iou_in_window  # noqa: E402
 
-import cv2                                                        # noqa: E402
-import soundfile as sf                                            # noqa: E402
 
 OFFSETS = [-1.0, -0.5, -0.2, -0.128, -0.064, -0.04, -0.02,
            0.0, 0.02, 0.04, 0.064, 0.128, 0.2, 0.5, 1.0]
@@ -45,14 +43,16 @@ def shift_wav(wav, delta_sec, sr):
 def extract_peaks(task):
     """光流峰 + onset 峰，一次并缓存。"""
     video, wav_path, cache = task
-    os.nice(10)
-    cv2.setNumThreads(2)
     name = Path(video).stem
     cp = Path(cache) / f"{name}_peaks.json"
     if cp.exists():
         d = json.load(open(cp))
         print(f"[{name}] cache hit", flush=True)
         return name, d
+    import cv2
+    import soundfile as sf
+    os.nice(10)
+    cv2.setNumThreads(2)
     frames, fps = read_frames(video)
     wav, sr = sf.read(wav_path)
     wav = (wav if wav.ndim == 1 else wav.mean(1)).astype(np.float32)
@@ -77,22 +77,37 @@ def main():
     ap.add_argument("--win", type=float, default=4.0)
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--cached-only", action="store_true", help="Use peak caches without raw media or extraction dependencies")
     args = ap.parse_args()
+    if args.win <= 0 or args.workers < 1 or not all(np.isfinite(args.offsets)):
+        ap.error("Require positive window/workers and finite offsets")
+    if len({f"{x:+.3f}" for x in args.offsets}) != len(args.offsets):
+        ap.error("Offset keys must be distinct at millisecond precision")
 
     refdir = Path(args.refdir)
-    videos = sorted(refdir.glob("ref*.mp4"))
-    if args.limit:
-        videos = videos[: args.limit]
-    tasks = [(str(v), str(v.with_suffix(".wav")), str(refdir / "peaks_cache"))
-             for v in videos]
-    for _, w, _ in tasks:
-        assert Path(w).exists(), f"缺 wav sidecar: {w}"
-    print(f"{len(tasks)} 条 × {len(args.offsets)} 偏移（峰时间戳平移法），"
-          f"win={args.win}s workers={args.workers}", flush=True)
+    if args.cached_only:
+        files = sorted((refdir / "peaks_cache").glob("*_peaks.json"))
+        if args.limit:
+            files = files[:args.limit]
+        peaks = {p.stem.removesuffix("_peaks"): json.loads(p.read_text()) for p in files}
+    else:
+        videos = sorted(refdir.glob("ref*.mp4"))
+        if args.limit:
+            videos = videos[: args.limit]
+        tasks = [(str(v), str(v.with_suffix(".wav")), str(refdir / "peaks_cache"))
+                 for v in videos]
+        for _, w, _ in tasks:
+            assert Path(w).exists(), f"缺 wav sidecar: {w}"
+        print(f"{len(tasks)} 条 × {len(args.offsets)} 偏移（峰时间戳平移法），"
+              f"win={args.win}s workers={args.workers}", flush=True)
 
-    from multiprocessing import Pool
-    with Pool(args.workers) as pool:
-        peaks = dict(pool.map(extract_peaks, tasks))
+        from multiprocessing import Pool
+        with Pool(args.workers) as pool:
+            peaks = dict(pool.map(extract_peaks, tasks))
+    if not peaks:
+        ap.error("No reference media/peak caches found")
+    if any(p["dur"] - 2 * max(map(abs, args.offsets)) < args.win for p in peaks.values()):
+        ap.error("Common support must contain at least one complete window")
 
     pad = max(abs(d) for d in args.offsets)
     per_video = {}

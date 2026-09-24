@@ -1,17 +1,17 @@
 """DeSync 测量核心：Synchformer 滑窗推理，供 desync_curve.py / calibrate_desync.py 复用。
 
 两条硬约束（Phase 0 标定结论，见 EXPERIMENT_LOG 关键结论 1/6）：
-  1. 音频必须来自无损 wav —— mp4 的 AAC 轨带 +64 ms 固定 priming 偏置。
+  1. 音频必须来自无损 wav —— 本研究所测 AAC 路径曾出现 +64 ms priming 偏置，并非所有 AAC 路径的常数。
   2. DeSync 主估计用 softmax 期望 Σ p_i·grid_i（连续），argmax 仅副产物 ——
      模型输出是 0.2s 量化栅格，argmax 天然产生台阶，会伪造"台阶状崩塌"结论。
 """
-import os, subprocess, sys
+import hashlib, os, subprocess, sys
 from pathlib import Path
 
 import numpy as np
 import torch
 
-SYNC_DIR = Path(__file__).resolve().parents[1] / "third_party" / "Synchformer"
+SYNC_DIR = Path(os.environ.get("SYNCHFORMER_DIR", Path(__file__).resolve().parents[1] / "third_party" / "Synchformer")).resolve()
 # Synchformer 内部用相对 sys.path（'.'、'model/modules/feat_extractors/visual'），
 # 只在它自己的目录下可导入 → 补成绝对路径，并在建模型前 chdir 过去。
 for _p in [SYNC_DIR, SYNC_DIR / "model/modules/feat_extractors/visual",
@@ -24,29 +24,35 @@ DEFAULT_EXP = "24-01-04T16-39-21"
 
 
 def build_model(exp_name=DEFAULT_EXP, device="cuda:0"):
+    if not SYNC_DIR.is_dir():
+        raise FileNotFoundError(f"Clone Synchformer and install its checkpoint first: {SYNC_DIR}. See README.md.")
     from omegaconf import OmegaConf
     from dataset.transforms import make_class_grid
     from scripts.train_utils import get_model, get_transforms
 
-    os.chdir(SYNC_DIR)
-    cfg = OmegaConf.load(SYNC_DIR / f"logs/sync_models/{exp_name}/cfg-{exp_name}.yaml")
-    cfg.model.params.afeat_extractor.params.ckpt_path = None
-    cfg.model.params.vfeat_extractor.params.ckpt_path = None
-    cfg.model.params.transformer.target = cfg.model.params.transformer.target.replace(
-        ".modules.feature_selector.", ".sync_model.")
+    previous_dir = Path.cwd()
+    try:
+        os.chdir(SYNC_DIR)
+        cfg = OmegaConf.load(SYNC_DIR / f"logs/sync_models/{exp_name}/cfg-{exp_name}.yaml")
+        cfg.model.params.afeat_extractor.params.ckpt_path = None
+        cfg.model.params.vfeat_extractor.params.ckpt_path = None
+        cfg.model.params.transformer.target = cfg.model.params.transformer.target.replace(
+            ".modules.feature_selector.", ".sync_model.")
 
-    dev = torch.device(device)
-    _, model = get_model(cfg, dev)
-    ckpt = torch.load(SYNC_DIR / f"logs/sync_models/{exp_name}/{exp_name}.pt",
-                      map_location="cpu", weights_only=False)
-    model.load_state_dict(ckpt["model"])
-    model.eval()
+        dev = torch.device(device)
+        _, model = get_model(cfg, dev)
+        ckpt = torch.load(SYNC_DIR / f"logs/sync_models/{exp_name}/{exp_name}.pt",
+                          map_location="cpu", weights_only=False)
+        model.load_state_dict(ckpt["model"])
+        model.eval()
 
-    num_cls = cfg.model.params.transformer.params.off_head_cfg.params.out_features
-    grid = make_class_grid(-float(cfg.data.max_off_sec), float(cfg.data.max_off_sec), num_cls)
-    tf = get_transforms(cfg, ["test"])["test"]
-    return dict(model=model, cfg=cfg, tf=tf, grid=grid.numpy(), device=dev,
-                crop_len=float(cfg.data.crop_len_sec), max_off=float(cfg.data.max_off_sec))
+        num_cls = cfg.model.params.transformer.params.off_head_cfg.params.out_features
+        grid = make_class_grid(-float(cfg.data.max_off_sec), float(cfg.data.max_off_sec), num_cls)
+        tf = get_transforms(cfg, ["test"])["test"]
+        return dict(model=model, cfg=cfg, tf=tf, grid=grid.numpy(), device=dev,
+                    crop_len=float(cfg.data.crop_len_sec), max_off=float(cfg.data.max_off_sec))
+    finally:
+        os.chdir(previous_dir)
 
 
 def reencode_video_only(src, dst, vfps=VFPS, in_size=IN_SIZE):
@@ -69,9 +75,11 @@ def load_streams(video, audio_wav=None, workdir="/tmp/desync_work"):
     audio_wav = str(Path(audio_wav).resolve())
     if not Path(audio_wav).exists():
         raise FileNotFoundError(
-            f"缺少无损音轨 {audio_wav}。DeSync 必须从 wav 读音频（mp4 的 AAC 轨带 +64ms 偏置）。")
+            f"缺少无损音轨 {audio_wav}。DeSync 必须从 wav 读音频（本研究所测 AAC 路径曾出现 +64ms 偏置）。")
     os.makedirs(workdir, exist_ok=True)
-    tmp = Path(workdir) / (Path(video).stem + f"_{VFPS}fps_{IN_SIZE}.mp4")
+    stat = Path(video).stat()
+    identity = hashlib.sha256(f"{video}:{stat.st_size}:{stat.st_mtime_ns}".encode()).hexdigest()[:16]
+    tmp = Path(workdir) / (Path(video).stem + f"_{identity}_{VFPS}fps_{IN_SIZE}.mp4")
     reencode_video_only(video, tmp)
     rgb, _, _ = torchvision.io.read_video(str(tmp), pts_unit="sec", output_format="TCHW")
     wav, sr = torchaudio.load(audio_wav)
@@ -92,6 +100,10 @@ def desync_curve(M, rgb, wav, meta, stride=1.0, batch_size=8, path="<mem>"):
     crop_len, grid, tf = M["crop_len"], M["grid"], M["tf"]
     vwin, awin = int(round(crop_len * VFPS)), int(round(crop_len * AFPS))
     dur = min(len(rgb) / VFPS, len(wav) / AFPS)
+    if stride <= 0 or not np.isfinite(stride) or batch_size < 1:
+        raise ValueError("stride and batch_size must be positive")
+    if dur < crop_len:
+        raise ValueError(f"Duration {dur:.2f}s is shorter than required {crop_len}s window")
     starts = np.arange(0.0, max(dur - crop_len, 0.0) + 1e-6, stride)
     if len(starts) == 0:
         raise ValueError(f"时长 {dur:.2f}s 短于 Synchformer 所需的 {crop_len}s 窗口")
@@ -112,7 +124,7 @@ def desync_curve(M, rgb, wav, meta, stride=1.0, batch_size=8, path="<mem>"):
         from scripts.train_utils import prepare_inputs
         batch = torch.utils.data.default_collate(items)
         aud, vid, _ = prepare_inputs(batch, M["device"])
-        with torch.autocast("cuda", enabled=M["cfg"].training.use_half_precision):
+        with torch.autocast("cuda", enabled=(M["device"].type == "cuda" and M["cfg"].training.use_half_precision)):
             _, logits = M["model"](vid, aud)
         p = torch.softmax(logits.float(), dim=-1).cpu().numpy()
         expect.extend((p * grid[None]).sum(1).tolist())

@@ -6,7 +6,7 @@
 直接取 ext json 的 curves 字段，无需重跑标定。旧 i.i.d. 计数以 --iid 复现。
 """
 import argparse
-import glob
+from pathlib import Path
 import json
 
 import numpy as np
@@ -35,11 +35,15 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--iid", action="store_true",
                     help="旧口径：读 calibrate_desync.py 落库的 i.i.d. 判定")
+    ap.add_argument("--data-dir", type=Path, default=Path(__file__).resolve().parents[1] / "data")
     args = ap.parse_args()
+    files = sorted(args.data_dir.glob("ref*_desync_calib_ext.json"))
+    if len(files) != 14:
+        ap.error(f"Expected 14 reference curves in {args.data_dir}; found {len(files)}")
 
     adv, dly = {m: 0 for m in MAGS}, {m: 0 for m in MAGS}
     n = 0
-    for p in sorted(glob.glob("figs/data/ref*_desync_calib_ext.json")):
+    for p in files:
         j = json.load(open(p))
         n += 1
         if args.iid:

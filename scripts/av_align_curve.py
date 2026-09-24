@@ -19,13 +19,28 @@ import numpy as np
 TT_DIR = Path(__file__).resolve().parents[1] / "third_party" / "TempoTokens"
 sys.path.insert(0, str(TT_DIR))
 
-import cv2                                                        # noqa: E402
-import librosa                                                    # noqa: E402
-import soundfile as sf                                            # noqa: E402
-from av_align import compute_of, find_local_max_indexes, calc_intersection_over_union  # noqa: E402
+def calc_intersection_over_union(audio_peaks, video_peaks, fps):
+    """Greedy, ordered one-to-one matching with strict +/- one-frame bounds.
+
+    Reimplementation of the TempoTokens definition; input order is preserved
+    (sorting random audio peaks would change the published Monte Carlo control).
+    """
+    if not np.isfinite(fps) or fps <= 0:
+        raise ValueError("fps must be positive and finite")
+    available = list(video_peaks)
+    matches = 0
+    for audio in audio_peaks:
+        for index, video in enumerate(available):
+            if video - 1 / fps < audio < video + 1 / fps:
+                matches += 1
+                del available[index]
+                break
+    union = len(audio_peaks) + len(video_peaks) - matches
+    return matches / union if union else float("nan")
 
 
 def read_frames(video):
+    import cv2
     cap = cv2.VideoCapture(str(video))
     if not cap.isOpened():
         raise ValueError(f"打不开视频 {video}")
@@ -41,12 +56,16 @@ def read_frames(video):
 
 
 def audio_peaks(wav, sr):
+    import librosa
     env = librosa.onset.onset_strength(y=wav, sr=sr)
     fr = librosa.onset.onset_detect(onset_envelope=env, sr=sr)
     return librosa.frames_to_time(fr, sr=sr)
 
 
 def video_peaks(frames, fps):
+    from av_align import compute_of, find_local_max_indexes
+    if len(frames) < 2:
+        raise ValueError("At least two video frames are required")
     flow = [compute_of(frames[0], frames[1])] + \
            [compute_of(frames[i - 1], frames[i]) for i in range(1, len(frames))]
     return find_local_max_indexes(flow, fps), flow
@@ -75,9 +94,10 @@ def main():
     if not Path(wav_path).exists():
         raise FileNotFoundError(
             f"缺少无损音轨 {wav_path}。AV-Align 的匹配容差是 ±1/fps（16fps → ±62.5ms），"
-            f"与 mp4 AAC 轨的 +64ms priming 同量级，必须从 wav 读。")
+            f"与本研究所测路径的 +64ms priming 同量级；请使用经校验的无损 wav。")
 
     frames, fps = read_frames(video)
+    import soundfile as sf
     wav, sr = sf.read(wav_path)
     wav = wav if wav.ndim == 1 else wav.mean(1)
     dur = min(len(frames) / fps, len(wav) / sr)
